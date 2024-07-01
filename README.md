@@ -3,20 +3,91 @@ The `ublox` package provides support for [u-blox](http://www.u-blox.com) GPS rec
 
 The driver was originally written by Johannes Meyer. Changes made later are detailed in the version history below.
 
+## Befor first use
+
+- Firstly, connect and configure RTK Receiver in Ubuntu.
+  - Plug the RTK antenna to your receiver. Place the antenna in a location with good view of the sky, or near a window for testing the functionality.
+  - Connect your receiver to the PC via the USB port labeled with “POWER+GPS.”
+  - Your receiver should be automatically configured. To verify this, open Terminal and type the command:
+    `ls /dev/tty*`
+
+    You will see the **“/dev/ttyACM0”** has been created automatically.
+  - To verify the stream from your RTK receiver, use the command:
+
+    ```
+    sudo cat /dev/ttyACM0
+    ```
+
+    This will show GPS input stream
+
+  - To prevent the RTK receiver from starting in a different “ttyACM*” each time when it is powered, create a udev rule (a dynamic link) that creates an entry with a specific name by adding the following file before connecting the RTK receiver.
+
+    ```
+    sudo nano /etc/udev/rules.d/50-ardusimple.rules
+    ```
+
+  - Enter the following text to the rule:
+
+    ```
+    KERNEL=="ttyACM[0-9]*", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a9", SYMLINK="tty_Ardusimple", GROUP="dialout", MODE="0666"
+    ```
+
+  - Press Ctrl+X to exit the file and press Y to save modified buffer.
+  - Now whenever an RTK receiver is connected, it will be accessible from the “/dev/tty_Ardusimple” link. To check this, disconnect RTK receiver (unpower and power again) and enter the commands:
+
+    ```
+    sudo service udev reload
+    sudo service udev restart
+    sudo udevadm trigger
+    ls /dev/
+    ```
+
+  - Now you can see that “tty_ArduSimple” has been created.
+
+## Run RTK Receiver in ROS2
+
+- Clone and instal dependencies of this package in your workspace. If you don’t have one, you can make it with the commands:
+
+  ```
+  mkdir -p ~/ros2_ws/src
+  cd ~/ros2_ws/src
+  git clone https://github.com/AhmedYasen97/ublox.git
+  cd ..
+  rosdep install --from-paths src --ignore-src -r -y
+  ```
+
+- You will see in the Terminal:
+
+  `#All required rosdeps installed successfully`
+- Build and source your work space with the commands:
+
+  ```
+  cd ~/ros2_ws
+  source /opt/ros/humble/setup.bash # change 'humble' with your ros2 destro
+  colcon build
+  source install/setup.bash
+  ```
+
+- run the package using this commands:
+
+  ```
+  ros2 launch ublox_gps ublox_gps_node-launch.py
+  ```
+
 ## Options
 
 Example .yaml configuration files are included in `ublox_gps/config`. Consult the u-blox documentation for your device for the recommended settings.
 
 The `ublox_gps` node supports the following parameters for all products and firmware versions:
-* `device`: Path to the device port. Defaults to `/dev/ttyACM0`.
-* `raw_data`: Whether the device is a raw data product. Defaults to false. Firmware <= 7.03 only.
-* `load`: Parameters for loading the configuration to non-volatile memory. See `ublox_msgs/CfgCFG.msg`
-    * `load/mask`: uint32_t. Mask of the configurations to load.
-    * `load/device`: uint32_t. Mask which selects the devices for the load command.
-* `save`: Parameters for saving the configuration to non-volatile memory. See `ublox_msgs/CfgCFG.msg`
-    * `save/mask`: uint32_t. Mask of the configurations to save.
-    * `save/device`: uint32_t. Mask which selects the devices for the save command.
-* `uart1/baudrate`: Bit rate of the serial communication. Defaults to 9600.
+- `device`: Path to the device port. Defaults to `/dev/tty_Ardusimple`.
+- `raw_data`: Whether the device is a raw data product. Defaults to false. Firmware <= 7.03 only.
+- `load`: Parameters for loading the configuration to non-volatile memory. See `ublox_msgs/CfgCFG.msg`
+  - `load/mask`: uint32_t. Mask of the configurations to load.
+  - `load/device`: uint32_t. Mask which selects the devices for the load command.
+- `save`: Parameters for saving the configuration to non-volatile memory. See `ublox_msgs/CfgCFG.msg`
+  - `save/mask`: uint32_t. Mask of the configurations to save.
+  - `save/device`: uint32_t. Mask which selects the devices for the save command.
+- `uart1/baudrate`: Bit rate of the serial communication. Defaults to 11520.
 * `uart1/in`: UART1 in communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
 * `uart1/out`: UART1 out communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
 * `frame_id`: ROS name prepended to frames produced by the node. Defaults to `gps`.
