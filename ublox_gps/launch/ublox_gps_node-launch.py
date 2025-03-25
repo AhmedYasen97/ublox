@@ -44,10 +44,13 @@ def generate_launch_description():
         ament_index_python.packages.get_package_share_directory('ublox_gps'),
         'config')
     params = os.path.join(config_directory, "zed_f9p.yaml")
-    ublox_gps_node = launch_ros.actions.Node(package='ublox_gps',
-                                             executable='ublox_gps_node',
-                                             output='both',
-                                             parameters=[params])
+    ublox_gps_node = launch_ros.actions.Node(
+        package="ublox_gps",
+        executable="ublox_gps_node",
+        output="both",
+        parameters=[params],
+        remappings=[("ublox_gps_node/fix", "gps/fix")],
+    )
 
     return launch.LaunchDescription([ublox_gps_node,
 
